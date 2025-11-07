@@ -16,14 +16,16 @@ GET / → { "message": "Koneksi success" }
 GET /mahasiswa
 GET /mahasiswa/1
 POST /mahasiswa (body JSON)
+PUT /mahasiswa/1 (body JSON)
+DELETE /mahasiswa/1
 ```
 
-## Test (sesuaikan path)
+## Test API (sesuaikan path)
 
 ### Menggunakan Terminal (pakai terminal yang basis Unix: Git Bash)
 
 ```bash
-curl -X POST http://localhost:8000/mahasiswa \
+curl -X POST http://localhost:3000/mahasiswa \
 -H "Authorization: Bearer 12345ABCDEF" \
 -H "Content-Type: application/json" \
 -d '{
@@ -31,76 +33,126 @@ curl -X POST http://localhost:8000/mahasiswa \
   "jurusan": "Teknik Informatika"
 }'
 ```
-
 respon Berhasil:
 ```json
 {
   "message": "Data mahasiswa berhasil ditambahkan"
 }
 ```
-
+Lainnya:
+```bash
+curl -X GET http://localhost:3000/
+```
+```bash
+curl -X GET http://localhost:3000/mahasiswa \
+-H "Authorization: Bearer 12345ABCDEF"
+```
+```bash
+curl -X GET http://localhost:3000/mahasiswa/1 \
+-H "Authorization: Bearer 12345ABCDEF"
+```
+```bash
+curl -X PUT http://localhost:3000/mahasiswa/1 \
+-H "Authorization: Bearer 12345ABCDEF" \
+-H "Content-Type: application/json" \
+-d '{
+  "nama": "Ahmad Syahroni",
+  "jurusan": "Tata Boga"
+}'
+```
+```bash
+curl -X DELETE http://localhost:3000/mahasiswa/1 \
+-H "Authorization: Bearer 12345ABCDEF"
+```
 ### Alternatif
 - Postman (Aplikasi)
 - Thunder Client (Ekstensi VSCode)
+- EchoAPI for VS Code (Ekstensi VSCode)
 
 ## Deployment
 
-### Render
-1. **Tambahkan composer.json:** Render akan mengenali aplikasi PHP kalau ada file composer.json. Jika belum ada:
+### Vercel
+Vercel bisa menjalankan PHP lewat custom runtime open-source bernama [vercel-php](https://github.com/vercel-community/php)
+1. **Tambahkan file konfigurasi Vecel:**
+```
+/api
+  ├── index.php
+vercel.json
+```
+- **api/index.php**
+```php
+<?php  
+
+require __DIR__ . "/../index.php";
+```
+
+- **vercel.json**
 ```json
 {
-  "name": "pbo13/rest-api-php",
-  "description": "REST API PHP Native untuk belajar CRUD",
-  "require": {
-    "php": ">=8.1",
-    "ext-pdo": "*"
+  "functions": {
+    "api/*.php": {
+      "runtime": "vercel-php@0.7.4"
+    }
   },
-  "scripts": {
-    "start": "php -S 0.0.0.0:10000"
-  }
+  "routes": [
+    { "src": "/(.*)",  "dest": "/api/index.php" }
+  ]
 }
 ```
-2. **Buat Repository di GitHub:** Tempat simpan proyek
+2. Install Vercel CLI
 ```bash
-git add remote myrepo https://github.com/<username>/<repo>
+npm install -g vercel
+```
+3. Login ke akunmu (pakai Github)
+```bash
+vercel login
+```
+4. Deploy proyek
+```bash
+vercel
+```
+Akan ada konfigurasi (tekan saja enter):
+```bash
+? Set up and deploy “c:\oop\rest-api”? yes
+? Which scope do you want to deploy to? leo42night's projects
+? Link to existing project? no
+? What’s your project’s name? rest-api
+? In which directory is your code located? ./
+? Want to modify these settings? no
+```
+
+5. Vercel akan otomatis mendeteksi file **vercel.json** dan menggunakan runtime @vercel/php.
+Setelah selesai, kamu akan dapat URL publik seperti:
+```
+https://rest-api.vercel.app
+```
+
+6. **Database Postgres**: konfigurasi seperti ini (pakai `POSTGRES_URL_NON_POOLING`):
+```bash
+DB_TYPE: pgsql
+DB_HOST: aws-1-ap-southeast-1.pooler.supabase.com
+DB_PORT: 5432 # pakai port NON_POOLING
+DB_USER: postgres.itzxopxshpvcjotxxxxx
+DB_PASS: ETnWsKT1Q9xxxxx
+DB_SSLMODE: require
+```
+- Akses di HeidiSQL:
+  - Network Type: **PostgreSQL (TCP/IP)**
+  - Library: **libpq-12.dll**
+
+7. Test Deployment
+```
+curl -X GET https://<url-deployment>.vercel.app/
+
+curl -X GET http://<url-deployment>.vercel.app/mahasiswa \
+-H "Authorization: Bearer 12345ABCDEF"
+```
+
+## Push Repo
+**Buat Repository di GitHub:** Tempat simpan proyek
+```bash
+git add remote repoku https://github.com/<username>/<repo>
 git add .
 git commit -m "persiapan sebelum deploy"
-gut push myrepo main --force
-```
-3. **Deploy ke Render**
-- Buka [render.com](https://render.com)
-- Login / Daftar (bisa pakai GitHub)
-- Klik **New → Web Service**
-- Pilih GitHub repo kamu (rest-api-php)
-- Isi konfigurasi:
-  - **service type**: `Web Service`
-  - **Language**: `Docker` (buat image PHP)
-  - **Region**: Singapore (disarankan untuk Asia)
-- Klik **Create Web Service**
-4. **Menyambung Database MySQL**
-- Buat akun di [Planetscale.com](https://planetscale.com/)
-- Buat database baru:
-  - name: `kampus_db`
-  - region: Singapore
-
-- Dapatkan kredensial:
-```yaml
-host: aws.connect.planetscale.com
-port: 3306
-username: user123
-password: abcd1234
-database: kampus_db
-```
-5. Tambahkan ke Render → Dashboard → Environment Variables
-```ini
-DB_HOST=aws.connect.planetscale.com
-DB_PORT=3306
-DB_NAME=kampus_db
-DB_USER=user123
-DB_PASS=abcd1234
-
-```
-6. Testing API: Setelah deploy, Render akan memberi URL seperti
-```
-https://rest-api-php.onrender.com
+gut push repoku main --force
 ```

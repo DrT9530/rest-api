@@ -1,19 +1,23 @@
 <?php
 class Database
 {
+    private $type;
     private $host;
     private $port;
     private $db_name;
     private $username;
     private $password;
+    private $sslmode;
     public $conn;
 
     public function __construct() {
+        $this->type = getenv('DB_TYPE') ?: 'mysql'; // vercel pakai pgsql
         $this->host = getenv('DB_HOST') ?: 'localhost';
         $this->port = getenv('DB_PORT') ?: '3306';
         $this->db_name = getenv('DB_NAME') ?: 'kampus_db';
         $this->username = getenv('DB_USER') ?: 'root';
         $this->password = getenv('DB_PASS') ?: '';
+        $this->sslmode = getenv('DB_SSLMODE') ?: ''; // vercel pakai require
     }
 
     public function connect()
@@ -21,7 +25,7 @@ class Database
         $this->conn = null;
         try {
             $this->conn = new PDO(
-                "mysql:host={$this->host};port={$this->port};dbname={$this->db_name}",
+                "{$this->type}:host={$this->host};port={$this->port};dbname={$this->db_name};sslmode={$this->sslmode}",
                 $this->username,
                 $this->password
             );
@@ -51,14 +55,25 @@ class Database
 
     private function createTableIfNotExists()
     {
-        $sql = "
-        CREATE TABLE IF NOT EXISTS mahasiswa (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            nama VARCHAR(100) NOT NULL,
-            jurusan VARCHAR(100) NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-        ";
+        if ($this->type === 'pgsql') {
+            $sql = "
+            CREATE TABLE IF NOT EXISTS mahasiswa (
+                id SERIAL PRIMARY KEY,                  -- AUTO_INCREMENT versi PostgreSQL
+                nama VARCHAR(100) NOT NULL,
+                jurusan VARCHAR(100) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            ";
+        } else {
+            $sql = "
+            CREATE TABLE IF NOT EXISTS mahasiswa (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                nama VARCHAR(100) NOT NULL,
+                jurusan VARCHAR(100) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            ";
+        }
 
         $this->conn->exec($sql);
     }
